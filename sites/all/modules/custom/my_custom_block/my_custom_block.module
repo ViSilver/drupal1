@@ -111,10 +111,21 @@ function my_form_callback($form, &$form_state){
 
 function my_form_callback_validate($form, &$form_state){
 	$name = $form_state['values']['name'];
-	if (!ctype_alpha($name))
+	//dpm($form_state);
+	if ($name == '')
+	{
+		form_set_error('name', t('The string is empty'));
+	}
+	else if (!ctype_alpha($name))
 	{
 		form_set_error('name', t("Enter a name which doesn't contain numbers."));
 	}
+}
+
+
+function my_form_callback_submit($form, &$form_state) {
+	$name = $form_state['values']['name'];
+	variable_set('site_name', $name);
 }
 
 
