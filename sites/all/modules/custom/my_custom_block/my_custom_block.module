@@ -62,6 +62,7 @@ function my_custom_block_block_view($delta = '') {
 	return $block;
 }
 
+
 /**
 * Implements hook_menu()
 */  
