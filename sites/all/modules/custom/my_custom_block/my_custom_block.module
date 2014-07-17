@@ -75,9 +75,46 @@ function my_custom_block_menu(){
 		//'access arguments' => array('access content')
 		);
 
+	$items ['my_form'] = array(
+		'title' => 'New form',
+		'page callback' => 'drupal_get_form',
+		'access callback' => True,
+		'page arguments' => array('my_form_callback'),
+		);
+
 	return $items;            
 }
   
+
+function my_form_callback($form, &$form_state){
+
+	$form['description'] = array(
+		'#type' => 'item',
+		'#title' => t('A form with nothing but a textfield'),
+	);
+
+	// This is the first form element. It's a textfield with a label, "Name"
+	$form['name'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Name'),
+	);
+
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => t('Save'),
+	);
+
+  return $form;
+}
+
+
+function my_form_callback_validate($form, &$form_state){
+	$name = $form_state['values']['name'];
+	if (!ctype_alpha($name))
+	{
+		form_set_error('name', t("Enter a name which doesn't contain numbers."));
+	}
+}
 
 
 function my_term_page($tid = 0){
@@ -104,7 +141,6 @@ function my_term_page($tid = 0){
 
 	return theme('item_list', array('items' => $output));
 }
-
 
 
 /**
