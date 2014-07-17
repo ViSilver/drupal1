@@ -1,0 +1,3 @@
+name = My Custom Block
+description = Second custom block.
+core = 7.x

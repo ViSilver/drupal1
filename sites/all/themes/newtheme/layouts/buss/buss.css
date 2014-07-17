@@ -1,0 +1,83 @@
+
+.panel-buss {
+  width: 100%;
+}
+
+.panel-buss-left-col {
+	width: 80%;
+  float: left;
+}
+.panel-buss-right-col {
+	width: 20%
+  float: right;
+}
+
+.panel-buss-third-cols {
+	width: 100%;
+}
+
+.panel-buss-first-left-col {
+	width: 60%;
+	float: left;
+}
+
+.panel-buss-first-right-col {
+	width: 40%;
+	float: right;
+}
+
+.panel-buss-second-cols {
+	width: 100%;
+}
+
+.panel-buss-second-left-col {
+	width: 40%;
+	float: left;
+}
+
+.panel-buss-second-right-col {
+	width: 60%;
+	float: right;
+}
+
+.panel-buss-third-cols {
+	width: 100%;
+}
+
+.panel-buss-third-left-col {
+	width: 60%;
+	float: left;
+}
+
+.panel-buss-third-right-col {
+	width: 40%;
+	float: right;
+}
+
+.panel-buss-fourth-cols {
+	width: 100%;
+}
+
+.panel-buss-fourth-left-col {
+	width: 80%;
+	float: left;
+}
+
+.panel-buss-fourth-right-col {
+	width: 20%;
+	float: right;
+}
+
+.panel-buss-fith-cols {
+	width: 100%;
+}
+
+.panel-buss-fith-left-col {
+	width: 50%;
+	float: left;
+}
+
+.panel-buss-fith-right-col {
+	width: 50%;
+	float: right;
+}

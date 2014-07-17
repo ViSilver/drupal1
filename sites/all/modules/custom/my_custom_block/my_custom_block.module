@@ -1,0 +1,119 @@
+<?php
+/**
+ * Implements hook_block_info().
+ */
+function my_custom_block_block_info() {
+	$blocks = array();
+
+	$blocks['my_custom_block'] = array(
+		// The name that will appear in the block list.
+		'info' => t('Second block'),
+	);
+
+	return $blocks;
+}
+
+/**
+* Implements hook_block_view().
+*/
+function my_custom_block_block_view($delta = '') {
+	$block = array();
+
+	switch ($delta) {
+		case 'my_custom_block':
+			$block['subject'] = t('The block title');
+			$string = '';
+			$items = array();
+			
+			/*
+			$query = db_query('	SELECT COUNT(`entity_id`) icount, `field_tags_tid`, ttd.`name` 
+								FROM `field_data_field_tags` fdft
+								INNER JOIN `taxonomy_term_data` ttd ON ttd.`tid` = fdft.`field_tags_tid`
+								GROUP BY `field_tags_tid`
+								ORDER BY icount DESC
+								LIMIT 0, 30 ');
+			*/
+			
+			//dpm($query);
+
+			$query = db_select('field_data_field_tags', 'fdft');
+			$query->addField('fdft', 'field_tags_tid');
+			$query->addField('ttd', 'name');
+			$query->join('taxonomy_term_data', 'ttd', 'ttd.tid = fdft.field_tags_tid');
+			$query->addExpression('COUNT(entity_id)', 'icount');
+			$query->groupBy('field_tags_tid');
+			$query->orderBy('icount', 'DESC');
+			$result = $query->execute();
+
+			$nr_of_rows = $result->rowCount();
+
+			//$oldResult = $result;
+
+			foreach ($result as $row) {
+				$items[] = l($row->name, 'termpage/'.$row->field_tags_tid);
+			}
+
+
+			$block['content'] =  theme('item_list', array('items' => $items));;
+
+			break;
+	}
+
+	return $block;
+}
+
+/**
+* Implements hook_menu()
+*/  
+function my_custom_block_menu(){
+ $items = array();
+
+	$items ['termpage'] = array(
+		'title' => 'New page',    
+		'page callback' => 'my_term_page',
+		'access callback' => True, 
+		//'access arguments' => array('access content')
+		);
+
+	return $items;            
+}
+  
+
+
+function my_term_page($tid = 0){
+	$query = new EntityFieldQuery();
+	$query->entityCondition('entity_type', 'node')
+		->fieldCondition('field_tags', 'tid', $tid);
+	$result = $query->execute();
+
+	//dpm($result);
+
+	if (isset($result['node'])) {
+		$news_items_nids = array_keys($result['node']);
+		$news_items = entity_load('node', $news_items_nids);
+	}
+
+	//dpm($news_items);
+
+	foreach ($news_items as $node) {
+		$nodeView = node_view($node, 'teaser');
+		$output[] = render($nodeView);
+	}
+
+	//dpm($output);
+
+	return theme('item_list', array('items' => $output));
+}
+
+
+
+/**
+ * Allowing %user access
+ */
+/*function myaccess() {
+	global $user;
+	return user_access('user_access');
+   }*/
+
+
+
