@@ -82,23 +82,89 @@ function my_custom_block_menu(){
 		'access callback' => True,
 		);
 
-	$items ['my_form'] = array(
+	$items['my_form'] = array(
 		'title' => 'New form',
 		'page callback' => 'drupal_get_form',
 		'access callback' => True,
 		'page arguments' => array('my_form_callback'),
 		);
 
-	$items ['genre_form'] = array(
-		'title' => 'The Genre survey',
+	$items['genre_form'] = array(
+		'title' => 'The Genre Survey',
 		'page callback' => 'drupal_get_form',
 		'access callback' => True,
 		'page arguments' => array('genre_form_callback'),
 		);
 
+	$items['genre_form_result'] = array(
+		'title' => 'The Genre Survey Result Table',
+		'page callback' => 'survey_result_callback',
+		'access callback' => TRUE,
+		);
+
 	return $items;            
 }
-  
+ 
+
+function survey_result_callback(){
+	$header = array('First Name', 'Last Name', 'Age', 'Category', 'Movies');
+	$rows = array();
+
+	$query = db_select('my_form_modules', 'ft');
+	$query->fields('ft');
+	$query->join('taxonomy_term_data', 'ttd', 'ft.category = ttd.tid');
+	$query->addField('ttd', 'name', 'genre_name');
+	
+	$result = $query->execute();
+
+	$result_table = array();
+	$index = 0;
+
+	foreach ($result as $key => $value) {
+		//dpm($value);
+		$result_table[$index]['name'] = $value->name;
+		$result_table[$index]['surname'] = $value->surname;
+		$result_table[$index]['age'] = $value->age;
+		$result_table[$index]['genre_name'] = $value->genre_name;
+		$result_table[$index]['movies'] = $value->movies;		
+		$index++;
+	}
+
+	//dpm($result_table);
+
+	foreach ($result_table as $key => $value) {
+		$unser = unserialize($value['movies']);
+		//dpm($unser);
+		$movie_nodes_array[] = entity_load('node', $unser);
+
+		$movie_names = '';
+	}
+
+	$movie_names = array();
+
+	foreach ($movie_nodes_array as $ind => $movie_nodes) {
+		//dpm($movie_nodes);
+
+		$movie_names[] = '';
+
+		foreach ($movie_nodes as $nid => $movie) {
+			$movie_names[$ind] .= $movie->title;
+			$movie_names[$ind] .= '</br>';
+		}
+
+		$result_table[$ind]['movies'] = $movie_names[$ind];		
+	}
+	//dpm($result_table);
+
+	//dpm($movie_nodes);
+
+	foreach ($result_table as $key => $value) {
+		$rows[] = array($value['name'], $value['surname'], $value['age'], $value['genre_name'], $value['movies']);
+	}
+
+	return theme('table', array('header' => $header, 'rows' => $rows));
+}
+
 
 function genre_form_callback($form, &$form_state) {
 
@@ -118,7 +184,7 @@ function genre_form_callback($form, &$form_state) {
 	$form['age_list'] = array(
 		'#type'=>'select',
 		'#title' => t('Age'),
-		'#options' => $age,
+		'#options' => drupal_map_assoc($age),
 		'#multiple' => false,
 		//'#required' => TRUE,
 		);
@@ -169,15 +235,13 @@ function genre_form_callback($form, &$form_state) {
 
 	// dpm($items);
 
-	// Make all this dynamic !!!!!!!!!!!!!!!
-
 	foreach ($radios_options as $key => $value) {
 
 		$str_genre_movie = strtolower($value).'_movies';
 		$str_choose_movie = 'Choose a '.strtolower($value).' movie.';
 
 		//dpm($items[$key]);
-		
+
 		if(isset($items[$key])) {
 
 			$form[$str_genre_movie] = array(
@@ -198,36 +262,6 @@ function genre_form_callback($form, &$form_state) {
 
 		// dpm($str_genre_movie);	
 	}
-
-	// $form['action_movies'] = array(
-	// 	'#type' => 'fieldset',
-	// 	'#title' => 'Choose an action movie',
-	// 	);
-
-	// $form['action_movies']['1'] = array(
-	// 	'#type' => 'checkboxes',
-	// 	'#options' => $items['1'],
-	// 	'#states' => array(
-	// 		'visible' => array(
-	// 			':input[name="radios"]' => array('value' => '1'),
-	// 			),
-	// 		),
-	// 	);
-
-	// $form['history_movies'] = array(
-	// 	'#type' => 'fieldset',
-	// 	'#title' => 'Choose a history movie',
-	// 	);
-
-	// $form['history_movies']['10'] = array(
-	// 	'#type' => 'checkboxes',
-	// 	'#options' => $items['10'],
-	// 	'#states' => array(
-	// 		'visible' => array(
-	// 			':input[name="radios"]' => array('value' => '10'),
-	// 			),
-	// 		),
-	// 	);
 
 	$form['submit'] = array(
 		'#type' => 'submit',
@@ -270,20 +304,20 @@ function genre_form_callback_submit($form, &$form_state){
 		if($value != 0) $result[] = $value;
 	}
 
-	dpm($result);
+	//dpm($result);
 
 	$result = serialize($result);
 	// dpm($result);
 
-	// $insert = db_insert('my_form_modules')
-	// 	-> fields(array(
-	// 		'name' => $first_name,
-	// 		'surname' => $last_name,
-	// 		'age' => $age,
-	// 		'category' => $category,
-	// 		'movies' => $result,
-	// 		))
-	// 	-> execute();
+	$insert = db_insert('my_form_modules')
+		-> fields(array(
+			'name' => $first_name,
+			'surname' => $last_name,
+			'age' => $age,
+			'category' => $category,
+			'movies' => $result,
+			))
+		-> execute();
 
 	// dpm(unserialize($result));
 	drupal_set_message(t('Your vote is accepted!'));
@@ -360,6 +394,7 @@ function my_term_page($tid = 0){
 	if (isset($result['node'])) {
 		$news_items_nids = array_keys($result['node']);
 		$news_items = entity_load('node', $news_items_nids);
+		//dpm($news_items);
 	}
 
 	//dpm($news_items);
