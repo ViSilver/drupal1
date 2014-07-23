@@ -1,0 +1,50 @@
+<?php
+
+function my_custom_block_schema() {
+	$schema['my_form_modules'] = array(
+		'description' => 'The base table for nodes.',
+
+		'fields' => array(
+			'id' => array(
+				'description' => 'The primary identifier for a node.',
+				'type' => 'serial',
+				'unsigned' => TRUE,
+				'not null' => TRUE,
+			),
+			'name' => array(
+				'description' => 'First Name',
+				'type' => 'varchar',
+				'length' => 35,
+				'not null' => TRUE,
+				'default' => '',
+			),
+			'surname' => array(
+				'type' => 'varchar',
+				'length' => 40,
+				'not null' => True,
+				'default' => '',
+			),
+			'age' => array(
+				'type' => 'int',
+				'default' => 1,
+				'unsigned' => True,
+			),
+			'category' => array(
+				'type' => 'int',
+				'unsigned' => True,
+				'not null' => TRUE,
+			),			
+			'movies' => array(
+				'type' => 'varchar',
+				'default' => '',
+				'not null' => True,
+				'serialize' => True,
+				'length' => 50,
+			),
+		),
+
+		'primary key' => array('id'),
+	);
+
+	return $schema;
+}
