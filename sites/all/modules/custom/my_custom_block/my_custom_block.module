@@ -37,15 +37,15 @@ function my_custom_block_block_view($delta = '') {
 			//dpm($query);
 
 			$query = db_select('field_data_field_tags', 'fdft');
-			$query->addField('fdft', 'field_tags_tid');
-			$query->addField('ttd', 'name');
-			$query->join('taxonomy_term_data', 'ttd', 'ttd.tid = fdft.field_tags_tid');
-			$query->addExpression('COUNT(entity_id)', 'icount');
-			$query->groupBy('field_tags_tid');
-			$query->orderBy('icount', 'DESC');
-			$result = $query->execute();
+			$query -> addField('fdft', 'field_tags_tid');
+			$query -> addField('ttd', 'name');
+			$query -> join('taxonomy_term_data', 'ttd', 'ttd.tid = fdft.field_tags_tid');
+			$query -> addExpression('COUNT(entity_id)', 'icount');
+			$query -> groupBy('field_tags_tid');
+			$query -> orderBy('icount', 'DESC');
+			$result = $query -> execute();
 
-			$nr_of_rows = $result->rowCount();
+			$nr_of_rows = $result -> rowCount();
 
 			//$oldResult = $result;
 
@@ -76,6 +76,12 @@ function my_custom_block_menu(){
 		//'access arguments' => array('access content')
 		);
 
+	$items['genre_page'] = array(
+		'title' => 'Movies sorted by a specific genre.',
+		'page callback' => 'my_genre_page',
+		'access callback' => True,
+		);
+
 	$items ['my_form'] = array(
 		'title' => 'New form',
 		'page callback' => 'drupal_get_form',
@@ -83,27 +89,240 @@ function my_custom_block_menu(){
 		'page arguments' => array('my_form_callback'),
 		);
 
+	$items ['genre_form'] = array(
+		'title' => 'The Genre survey',
+		'page callback' => 'drupal_get_form',
+		'access callback' => True,
+		'page arguments' => array('genre_form_callback'),
+		);
+
 	return $items;            
 }
   
 
+function genre_form_callback($form, &$form_state) {
+
+	$form['first_name'] = array(
+		//'#required' => TRUE,
+		'#type' => 'textfield',
+		'#attributes' => array('placeholder' => t('First Name')),
+		);
+
+	$form['last_name'] = array(
+		//'#required' => TRUE,
+		'#type' => 'textfield',
+		'#attributes' => array('placeholder' => t('Last Name')),
+		);
+
+	$age = range(1, 90);
+	$form['age_list'] = array(
+		'#type'=>'select',
+		'#title' => t('Age'),
+		'#options' => $age,
+		'#multiple' => false,
+		//'#required' => TRUE,
+		);
+
+	$query_movies_id = db_select('taxonomy_term_data', 'ttd')
+						-> fields('ttd', array('tid', 'name'))
+						-> condition('ttd.vid', '6', '=');
+
+	$result_movies_id = $query_movies_id -> execute();
+
+	foreach ($result_movies_id as $key => $value) {
+		$form_state['movie_ids_names'][] = $value;
+	}
+
+	//dpm($form_state['movie_ids_names']);
+
+	$radios_options = array();
+
+	foreach ($form_state['movie_ids_names'] as $key => $value) {
+		//dpm($key);
+		$radios_options[$value->tid] = $value->name;
+	}
+
+	//dpm($radios_options);  // 'tid' => 'name_genre'
+
+	$form['radios'] = array(
+		'#type' => 'radios',
+		'#title' => t('Specify the category'),
+		'#required' => True,
+		'#options' => $radios_options,
+	);
+
+	$query = db_select('node', 'n');
+	$query -> fields('n', array('title', 'nid'));
+	$query -> join('field_data_field_genre', 'f', 'n.nid = f.entity_id');
+	$query -> join('taxonomy_term_data', 't', 'f.field_genre_tid = t.tid');
+	$query -> addField('t', 'name');
+	$query -> addField('t', 'tid');
+	$result = $query -> execute();
+
+	// Make this dynamic !!!!!!!
+	foreach ($result as $key => $row) {
+		// dpm($row);	// object with 4 fields: title of the movie, nid, genre_name, tid
+		foreach ($radios_options as $tid => $name) {
+			if ($row->name == $name) $items[$tid][$row->nid] = $row->title;
+		}
+	}
+
+	// dpm($items);
+
+	// Make all this dynamic !!!!!!!!!!!!!!!
+
+	foreach ($radios_options as $key => $value) {
+
+		$str_genre_movie = strtolower($value).'_movies';
+		$str_choose_movie = 'Choose a '.strtolower($value).' movie.';
+
+		//dpm($items[$key]);
+		
+		if(isset($items[$key])) {
+
+			$form[$str_genre_movie] = array(
+				'#type' => 'fieldset',
+				'#title' => $str_choose_movie,
+				);
+
+			$form[$str_genre_movie][$key] = array(
+				'#type' => 'checkboxes',
+				'#options' => $items[$key],
+				'#states' => array(
+					'visible' => array(
+						':input[name="radios"]' => array('value' => $key),
+						),
+					),
+				);
+		}
+
+		// dpm($str_genre_movie);	
+	}
+
+	// $form['action_movies'] = array(
+	// 	'#type' => 'fieldset',
+	// 	'#title' => 'Choose an action movie',
+	// 	);
+
+	// $form['action_movies']['1'] = array(
+	// 	'#type' => 'checkboxes',
+	// 	'#options' => $items['1'],
+	// 	'#states' => array(
+	// 		'visible' => array(
+	// 			':input[name="radios"]' => array('value' => '1'),
+	// 			),
+	// 		),
+	// 	);
+
+	// $form['history_movies'] = array(
+	// 	'#type' => 'fieldset',
+	// 	'#title' => 'Choose a history movie',
+	// 	);
+
+	// $form['history_movies']['10'] = array(
+	// 	'#type' => 'checkboxes',
+	// 	'#options' => $items['10'],
+	// 	'#states' => array(
+	// 		'visible' => array(
+	// 			':input[name="radios"]' => array('value' => '10'),
+	// 			),
+	// 		),
+	// 	);
+
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => 'Submit',
+	);
+
+	return $form;
+}
+
+
+function genre_form_callback_validate($form, &$form_state){
+
+	//dpm($form_state['values']['radios']);
+	$first_name = $form_state['values']['first_name'];
+	$last_name = $form_state['values']['last_name'];
+	if (strlen($first_name > 35)) form_set_error('name', t('First name could not be longer then 35 characters'));
+	if (strlen($last_name > 35)) form_set_error('name', t('Last name could not be longer then 35 characters'));
+
+}
+
+
+function genre_form_callback_submit($form, &$form_state){
+
+	$first_name = $form_state['values']['first_name'];
+	$last_name = $form_state['values']['last_name'];
+	$age = $form_state['values']['age_list'];
+	$category = $form_state['values']['radios'];
+
+	$genre_id_name = $form_state['movie_ids_names'];
+
+	foreach ($genre_id_name as $key => $value) {
+		if ($category == $value->tid) {
+			$checked = $form_state['values'][$value->tid];
+		}
+	}
+
+	$result = array();
+
+	foreach ($checked as $key => $value) {
+		if($value != 0) $result[] = $value;
+	}
+
+	dpm($result);
+
+	$result = serialize($result);
+	// dpm($result);
+
+	// $insert = db_insert('my_form_modules')
+	// 	-> fields(array(
+	// 		'name' => $first_name,
+	// 		'surname' => $last_name,
+	// 		'age' => $age,
+	// 		'category' => $category,
+	// 		'movies' => $result,
+	// 		))
+	// 	-> execute();
+
+	// dpm(unserialize($result));
+	drupal_set_message(t('Your vote is accepted!'));
+}
+
+
 function my_form_callback($form, &$form_state){
 
-	$form['description'] = array(
-		'#type' => 'item',
-		'#title' => t('A form with nothing but a textfield'),
-	);
+	// $form['description'] = array(
+	// 	'#type' => 'item',
+	// 	'#title' => t('A form with nothing but a textfield'),
+	// );
 
 	// This is the first form element. It's a textfield with a label, "Name"
 	$form['name'] = array(
 		'#type' => 'textfield',
 		'#title' => t('Name'),
+		'#placeholder' => variable_get('site_name'),
+	);
+
+	$form['genre_category'] = array(
+		'#type' => 'radios',
+		'#options' => array(
+			'historical' => t('Historical'),
+			'action' => t('Action'),
+			'drama' => t('Drama'), 
+		),
+		'#title' => t('Choose the genre you are interested in'),
 	);
 
 	$form['submit'] = array(
 		'#type' => 'submit',
 		'#value' => t('Save'),
 	);
+
+	// $form['checkbox'] = array(
+	// 	'#title' => t('samsing'),
+	// 	'#type' => 'checkbox',
+	// );
 
   return $form;
 }
@@ -129,6 +348,7 @@ function my_form_callback_submit($form, &$form_state) {
 }
 
 
+// The termpage callback function
 function my_term_page($tid = 0){
 	$query = new EntityFieldQuery();
 	$query->entityCondition('entity_type', 'node')
@@ -144,6 +364,9 @@ function my_term_page($tid = 0){
 
 	//dpm($news_items);
 
+	if (!isset($news_items))
+		return '';
+
 	foreach ($news_items as $node) {
 		$nodeView = node_view($node, 'teaser');
 		$output[] = render($nodeView);
@@ -153,6 +376,35 @@ function my_term_page($tid = 0){
 
 	return theme('item_list', array('items' => $output));
 }
+
+
+//The genre_page callback function 
+function my_genre_page($tid = 0) {
+	$query = new EntityFieldQuery();
+	$query 	-> entityCondition('entity_type', 'node')
+			-> fieldCondition('field_genre', 'tid', $tid);
+	$result = $query -> execute();
+
+	dpm($result);
+
+	if (isset($result['node'])) {
+		$news_items_nids = array_keys($result['node']);
+		$news_items = entity_load('node', $news_items_nids);
+	}
+
+	if (!isset($news_items))
+		return '';
+
+	foreach ($news_items as $node) {
+		$nodeView = node_view($node, 'teaser');
+		$output[] = render($nodeView);
+	}
+
+	//dpm($output);
+
+	//return 1;
+	return theme('item_list', array('items' => $output));
+ }
 
 
 /**
