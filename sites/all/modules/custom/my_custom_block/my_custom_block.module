@@ -102,12 +102,91 @@ function my_custom_block_menu(){
 		'access callback' => TRUE,
 		);
 
+	$items['edit_my_node/%'] = array(	// index(edit_my_node) = 0, index(%) = 1
+		'title' => 'Edit the movie',
+		'page callback' => 'drupal_get_form',
+		'access callback' => TRUE,
+		'page arguments' => array('edit_form_callback', 1),
+		);
+
 	return $items;            
+}
+
+
+function edit_form_callback($form, &$form_state, $node_id){
+	
+	// $form['#prefix']
+	// $form['#suffix']
+
+	$form['wrapper'] = array(
+		'#type' => 'fieldset',
+		'#prefix' => '<div id="my_form_wrapper_div">',
+		'#suffix' => '</div>',
+		);
+
+	$form['wrapper']['title'] = array(
+		'#description' => 'Title',
+		'#required' => TRUE,
+		'#type' => 'textfield',
+		'#attributes' => array('placeholder' => t('Write the new title of the movie.')),
+		);
+
+	$form['wrapper']['submit'] = array(
+		'#type' => 'submit',
+		'#value' => 'Update',
+		'#ajax' => array(
+			// #ajax has two required keys: callback and wrapper.
+			// 'callback' is a function that will be called when this element changes.
+			'callback' => 'ajax_edit_form_callback',
+			// 'wrapper' is the HTML id of the page element that will be replaced.
+			'wrapper' => 'my_form_wrapper_div',
+			// There are also several optional keys - see ajax_example_autocheckboxes
+			// below for details on 'method', 'effect' and 'speed' and
+			// ajax_example_dependent_dropdown for 'event'.
+		),
+	);
+
+
+	return $form;
+}
+
+
+function ajax_edit_form_callback($form, $form_state){
+	dpm($form_state);
+
+	$nid = $form_state['build_info']['args']['0'];
+
+	$node = node_load($nid); 
+	$node->title = $form_state['values']['title'];
+	node_save($node);
+
+	// $new_title = $form_state['values']['title'];
+
+	// $debug = db_update('node')
+	// 	->fields(array(
+	// 		'title' => $new_title,
+	// 		))
+	// 	->condition('nid', $nid, '=')
+	// 	->execute();
+
+	//  entity_get_controller('node')->resetCache(array($nid));
+
+	// dpm($debug);
+
+	drupal_set_message(t('The database was updated. ').l('Edit', 'genre_form_result').t(' one more movie.'));
+
+	return $form;
+}
+
+
+function my_custom_block_node_presave($node){
+	$node->title .= '!!';
+	// db_update('node')->fields(array('title' => $node->title))->condition('nid', $node->nid, '=')->execute();
 }
  
 
 function survey_result_callback(){
-	$header = array('First Name', 'Last Name', 'Age', 'Category', 'Movies');
+	$header = array('First Name', 'Last Name', 'Age', 'Category', 'Movies', 'Edit');
 	$rows = array();
 
 	$query = db_select('my_form_modules', 'ft');
@@ -126,7 +205,8 @@ function survey_result_callback(){
 		$result_table[$index]['surname'] = $value->surname;
 		$result_table[$index]['age'] = $value->age;
 		$result_table[$index]['genre_name'] = $value->genre_name;
-		$result_table[$index]['movies'] = $value->movies;		
+		$result_table[$index]['movies'] = $value->movies;
+		$result_table[$index]['movie_nodes'] = $value->movies;		
 		$index++;
 	}
 
@@ -135,31 +215,42 @@ function survey_result_callback(){
 	foreach ($result_table as $key => $value) {
 		$unser = unserialize($value['movies']);
 		//dpm($unser);
-		$movie_nodes_array[] = entity_load('node', $unser);
+		$movie_nodes_array[] = node_load_multiple($unser);
+		// $movie_nodes_array[] = entity_load('node', $unser);
 
 		$movie_names = '';
 	}
+
+	//dpm($movie_nodes_array);
 
 	$movie_names = array();
 
 	foreach ($movie_nodes_array as $ind => $movie_nodes) {
 		//dpm($movie_nodes);
 
+		$movie_nids = array();
 		$movie_names[] = '';
 
 		foreach ($movie_nodes as $nid => $movie) {
+			$movie_nids[] = l('Edit', 'edit_my_node/'.$nid);
 			$movie_names[$ind] .= $movie->title;
 			$movie_names[$ind] .= '</br>';
 		}
 
-		$result_table[$ind]['movies'] = $movie_names[$ind];		
+		// dpm($movie_nids);
+
+		$result_table[$ind]['movies'] = $movie_names[$ind];	
+
+		$variables['items'] = $movie_nids;
+		$variables['type'] = 'ul';
+		$result_table[$ind]['movie_nodes'] = theme('item_list', $variables); 	
 	}
 	//dpm($result_table);
 
 	//dpm($movie_nodes);
 
 	foreach ($result_table as $key => $value) {
-		$rows[] = array($value['name'], $value['surname'], $value['age'], $value['genre_name'], $value['movies']);
+		$rows[] = array($value['name'], $value['surname'], $value['age'], $value['genre_name'], $value['movies'], $value['movie_nodes']);
 	}
 
 	return theme('table', array('header' => $header, 'rows' => $rows));
